@@ -12,7 +12,7 @@ use IO::File;
 use IO::String;
 
 use vars qw($VERSION);
-$VERSION = "2.00";
+$VERSION = "2.01";
 
 sub _parse_characterstream {
     my $p       = shift;
