@@ -6,11 +6,12 @@ WriteMakefile(
     'VERSION_FROM'  => 'wbxml.pm', # finds $VERSION
     'ABSTRACT'      => 'SAX parser for WBXML file used by Wireless Application Protocol',
     'PREREQ_PM'     => {
-                        'IO::File'      => 0,
-                        'IO::String'    => 0,
-                        'I18N::Charset' => '1.15',
-                        'XML::SAX::Base'=> 0,
-                        'WAP::wbxml'    => '1.06',
+                        'IO::File'          => 0,
+                        'IO::String'        => 0,
+                        'I18N::Charset'     => '1.15',
+                        'XML::SAX::Base'    => '1.00',
+                        'WAP::wbxml'        => '1.06',
+                        'XML::SAX::Writer'  => '0.44'
     },
     'PM'            => {
                         'wbxml.pm'      => '$(INST_LIBDIR)/wbxml.pm',

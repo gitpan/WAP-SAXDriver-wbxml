@@ -2,11 +2,17 @@
 
 use strict;
 
+use Getopt::Std;
 use XML::SAX::Writer;
 use WAP::SAXDriver::wbxml;
 
-my $handler = new XML::SAX::Writer();
-my $parser = new WAP::SAXDriver::wbxml(Handler => $handler);
+my %opts;
+getopts('b', \%opts);
+
+my $consumer = new XML::SAX::Writer::StringConsumer();
+my $handler = new XML::SAX::Writer(Output => $consumer);
+my $error = new MyErrorHandler();
+my $parser = new WAP::SAXDriver::wbxml(Handler => $handler, ErrorHandler => $error);
 
 my $file = $ARGV[0];
 die "No input.\n"
@@ -14,6 +20,7 @@ die "No input.\n"
 my $io = new IO::File($file,"r");
 die "Can't open $file ($!).\n"
 		unless (defined $io);
+binmode $io, ":raw";
 my $out = $ARGV[1];
 if ($out) {
 	open STDOUT, "> $out"
@@ -24,6 +31,44 @@ my $doc = $parser->parse(
 		Source		=> {ByteStream => $io}
 );
 
+if ($opts{b}) {
+	my @tab;
+	foreach (split /(<[^>']*(?:'[^']*'[^>']*)*>)/, ${$consumer->finalize()}) {
+		next unless ($_);
+		pop @tab if (/^<\//);
+		print @tab,$_,"\n";
+		push @tab,'  ' if (/^<[^\/?!]/ and /[^\/]>$/);
+	}
+} else {
+	print ${$consumer->finalize()};
+}
+
+package MyErrorHandler;
+
+sub new {
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+    return bless {}, $class;
+}
+
+sub fatal_error {
+	my $self = shift;
+	my ($hash) = @_;
+	die __PACKAGE__,": Fatal error\n\tat position $hash->{BytePosition}.\n";
+}
+
+sub error {
+	my $self = shift;
+	my ($hash) = @_;
+	warn __PACKAGE__,": Error: $hash->{Message}\n\tat position $hash->{BytePosition}\n";
+}
+
+sub warning {
+	my $self = shift;
+	my ($hash) = @_;
+	warn __PACKAGE__,": Warning: $hash->{Message}\n\tat position $hash->{BytePosition}\n";
+}
+
 __END__
 
 =head1 NAME
@@ -32,7 +77,17 @@ wbxmld - WBXML Disassembler
 
 =head1 SYNOPSYS
 
- wbxmld I<file>
+wbxmld [B<-b>] I<file>
+
+=head1 OPTIONS
+
+=over 8
+
+=item -b
+
+Beautify
+
+=back
 
 =head1 DESCRIPTION
 

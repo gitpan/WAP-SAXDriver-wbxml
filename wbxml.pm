@@ -12,7 +12,7 @@ use IO::File;
 use IO::String;
 
 use vars qw($VERSION);
-$VERSION = "2.01";
+$VERSION = "2.02";
 
 sub _parse_characterstream {
     my $p       = shift;
@@ -63,6 +63,7 @@ sub _parse_systemid {
     $p->{io_handle} = new IO::File($xml, "r");
     die "Can't open $xml ($!)\n"
             unless (defined $p->{io_handle});
+    binmode $p->{io_handle}, ":raw";
     my $result = $p->_parse($opt);
     $p->_cleanup;
     return $result;
@@ -103,6 +104,7 @@ sub _cleanup {
     delete $self->{publicid_idx};
     delete $self->{root_name};
     delete $self->{io_strtbl} if (exists $self->{io_strtbl});
+    delete $self->{strtbl} if (exists $self->{strtbl});
     delete $self->{io_handle};
 }
 
@@ -199,7 +201,7 @@ sub _parse {
 				LineNumber		=> 1,
 				BytePosition	=> $pos
 		} );
-		die __PACKAGE__,": Fatal error at position $pos\n";
+		warn __PACKAGE__,": Fatal error at position $pos\n";
 	}
 
 	return $end;
@@ -274,9 +276,10 @@ sub get_strtbl {
 	my $self = shift;
 	my $len = $self->getmb32();
 	if ($len) {
-		my $str;
+		my $str = '';
 		$self->{io_handle}->read($str,$len);
-		$self->{io_strtbl} = new IO::String($str);
+		$self->{strtbl} = $str . chr 0;
+		$self->{io_strtbl} = new IO::String($self->{strtbl});
 	}
 }
 
@@ -523,7 +526,9 @@ sub content {
 	} elsif ($tag == OPAQUE) {
 		my $data = $self->get_opaque();
 		return undef unless (defined $data);
-		$self->error("OPAQUE unexpected");
+		$self->SUPER::characters( {
+				Data => $data
+		} );
 	} else {
 		my $rc = $self->element($tag);	# LITERAL and all TAG
 		return undef unless (defined $rc);

@@ -1,5 +1,13 @@
 Revision history for Perl extension WAP::SAXDriver::wbxml.
 
+2.02  Mon Dec 02 12:30:00 2002
+	- bug with IO::String (not save copy in IO::String)
+	- fix (string table not NULL terminated)
+	- suppress error with OPAQUE
+	- add an error handler in wbxmld.pl
+	- add an option beautify (-b) in wbxmld.pl
+	- fix (missing binmode)
+
 2.01  Thu Sep 26 12:30:00 2002
 	- bug in Makefile.PL
 
