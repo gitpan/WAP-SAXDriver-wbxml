@@ -8,6 +8,7 @@ WriteMakefile(
     'PREREQ_PM'     => {
                         'IO::File'      => 0,
                         'IO::String'    => 0,
+                        'I18N::Charset' => '1.15',
     },
     'PM'            => {
                         'wbxml.pm'      => '$(INST_LIBDIR)/wbxml.pm',

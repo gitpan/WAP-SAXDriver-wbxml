@@ -9,36 +9,14 @@ use strict;
 
 package WAP::SAXDriver::wbxml;
 
+use I18N::Charset;
 use IO::File;
 use IO::String;
 use UNIVERSAL;
 
 use vars qw($VERSION $default_rules $rules);
 
-$VERSION = "1.01";
-
-sub BEGIN {
-	$default_rules = bless({},'Rules');
-	$default_rules->{CharacterSet} = {
-	# see: section 5.2 "Character Encoding" in WBXML 1.3
-	# see:  ftp://ftp.isi.edu/in-notes/iana/assignments/character-sets
-	# MIBenum	=>	name
-		3		=> "US-ASCII",
-		4		=> "ISO-8859-1",
-		5		=> "ISO-8859-2",
-		6		=> "ISO-8859-3",
-		7		=> "ISO-8859-4",
-		8		=> "ISO-8859-5",
-		9		=> "ISO-8859-6",
-		10		=> "ISO-8859-7",
-		11		=> "ISO-8859-8",
-		12		=> "ISO-8859-9",
-		106		=> "UTF-8"
-	};
-	$default_rules->{App} = {};
-
-	$rules = undef;
-}
+$VERSION = "1.02";
 
 sub new {
 	my $type = shift;
@@ -112,7 +90,7 @@ sub parse {
 	}
 
 	if ($self->{ParseOptions}{UseOnlyDefaultRules}) {
-		$self->{Rules} = $default_rules;
+		$self->{Rules} = undef;
 	} else {
 		unless (defined $rules) {
 			my $path = $INC{'WAP/SAXDriver/wbxml.pm'};
@@ -303,8 +281,17 @@ sub get_charset {
 	my $charset = $self->getmb32();
 	return undef unless (defined $charset);
 	if ($charset != 0) {
-		if (exists $self->{Rules}->{CharacterSet}{$charset}) {
-			$self->{Encoding} = $self->{Rules}->{CharacterSet}{$charset};
+		my $default_charset = {
+		# here, only built-in encodings of Expat.
+		# MIBenum	=>  iana name
+			3		=> "ANSI_X3.4-1968",	# US-ASCII
+			4		=> "ISO_8859-1:1987",
+			106		=> "UTF-8"
+		};
+		if (exists $default_charset->{$charset}) {
+			$self->{Encoding} = $default_charset->{$charset};
+		} elsif (defined I18N::Charset::mib_to_charset_name($charset)) {
+			$self->{Encoding} = I18N::Charset::mib_to_charset_name($charset);
 		} else {
 			$self->{Encoding} = "MIBenum-$charset";
 			$self->warning("$self->{Encoding} unreferenced");
@@ -817,6 +804,8 @@ A WBXML file is the binarized form of XML file according the specification :
 
 This module could be parametrized by the file C<WAP::SAXDriver::wbrules.pl>
 what contains all specific values used by WAP applications.
+
+This module needs IO::File, IO::String and I18N::Charset modules.
 
 =head1 METHODS
 

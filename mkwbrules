@@ -55,12 +55,7 @@ sub start_element {
 
 	my $name = $element->{Name};
 	my $attrs = $element->{Attributes};
-	if ($name eq 'wbxml:CharacterSet') {
-		# <!ELEMENT wbxml:CharacterSet EMPTY>
-		# <!ATTLIST wbxml:CharacterSet MIBenum NMTOKEN #REQUIRED>
-		# <!ATTLIST wbxml:CharacterSet name NMTOKEN #REQUIRED>
-		$self->{CharacterSet}{$attrs->{MIBenum}} = $attrs->{name};
-	} elsif ($name eq 'wbxml:PublicIdentifier') {
+	if ($name eq 'wbxml:PublicIdentifier') {
 		# <!ELEMENT wbxml:PublicIdentifier EMPTY>
 		# <!ATTLIST wbxml:PublicIdentifier value NMTOKEN #REQUIRED>
 		# <!ATTLIST wbxml:PublicIdentifier name CDATA #REQUIRED>

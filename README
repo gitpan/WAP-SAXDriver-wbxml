@@ -15,7 +15,7 @@ Description:
 
 Prerequisites:
 --------------
-    This module needs IO::File and IO::String modules.
+    This module needs IO::File, IO::String and I18N::Charset modules.
 
 Parametrization:
 ----------------

@@ -1,5 +1,8 @@
 Revision history for Perl extension WAP::SAXDriver::wbxml.
 
+1.02  Thu Feb 14 20:30:00 2002
+	- use of I18N-Charset
+
 1.01  Wed Jan 23 17:30:00 2002
 	- bug in Makefile.PL
 
