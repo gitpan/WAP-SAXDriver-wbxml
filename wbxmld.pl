@@ -7,12 +7,12 @@ use XML::SAX::Writer;
 use WAP::SAXDriver::wbxml;
 
 my %opts;
-getopts('b', \%opts);
+getopts('bp:', \%opts);
 
 my $consumer = new XML::SAX::Writer::StringConsumer();
 my $handler = new XML::SAX::Writer(Output => $consumer);
 my $error = new MyErrorHandler();
-my $parser = new WAP::SAXDriver::wbxml(Handler => $handler, ErrorHandler => $error);
+my $parser = new WAP::SAXDriver::wbxml(Handler => $handler, ErrorHandler => $error, RulesPath => $opts{p});
 
 my $file = $ARGV[0];
 die "No input.\n"
@@ -77,7 +77,7 @@ wbxmld - WBXML Disassembler
 
 =head1 SYNOPSYS
 
-wbxmld [B<-b>] I<file>
+wbxmld [B<-b>] [B<-p> I<path>] I<file>
 
 =head1 OPTIONS
 
@@ -86,6 +86,10 @@ wbxmld [B<-b>] I<file>
 =item -b
 
 Beautify
+
+=item -p
+
+Specify the path of rules (the default is WAP/SAXDriver).
 
 =back
 

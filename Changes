@@ -1,5 +1,12 @@
 Revision history for Perl extension WAP::SAXDriver::wbxml.
 
+2.03  Thu Jul 22 12:30:00 2003
+	- add option -p : path for rules
+	- rename wbrules.pl to wap.wbrules2.pl
+	- deprecated xml_decl in favour of start_document
+	- add syncmld.pl & syncml.wbrules2.pl (SyncML)
+	- bug mkwbrules (ATTRVALUE)
+
 2.02  Mon Dec 02 12:30:00 2002
 	- bug with IO::String (not save copy in IO::String)
 	- fix (string table not NULL terminated)

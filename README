@@ -10,8 +10,8 @@ Description:
         Specification / Version 1.3 WBXML (15th May 2000 Approved)
 
     This module could be parametrized by the file
-    `WAP::SAXDriver::wbrules.pl' what contains all specific values used by
-    WAP applications.
+    `WAP::SAXDriver::wap.wbrules2.pl' what contains all specific values used
+    by WAP applications.
 
 Prerequisites:
 --------------
@@ -21,8 +21,8 @@ Prerequisites:
 
 Parametrization:
 ----------------
-    The script `mkwbrules.pl' can rebuild the file `wbrules.pl' from
-    `WAP/wbrules.xml' that describes rules of the binarization
+    The script `mkwbrules.pl' can rebuild the file `wbrules2.pl' from
+    `WAP/wap.wbrules.xml' that describes rules of the binarization
     (module WAP::wbxml).
     This script needs XML::SAX::ParserFactory, Data::Dumper and
     POSIX modules.

@@ -12,12 +12,12 @@ use IO::File;
 use IO::String;
 
 use vars qw($VERSION);
-$VERSION = "2.02";
+$VERSION = "2.03";
 
 sub _parse_characterstream {
     my $p       = shift;
     my $xml     = shift;
-    my $opt     = shift;
+    my $opt     = $p->{ParseOptions};
 
     $p->_init_parser($opt);
     die __PACKAGE__,": Not an IO::Handle\n"
@@ -31,7 +31,7 @@ sub _parse_characterstream {
 sub _parse_bytestream {
     my $p       = shift;
     my $xml     = shift;
-    my $opt     = shift;
+    my $opt     = $p->{ParseOptions};
 
     $p->_init_parser($opt);
     die __PACKAGE__,": Not an IO::Handle\n"
@@ -45,7 +45,7 @@ sub _parse_bytestream {
 sub _parse_string {
     my $p       = shift;
     my $xml     = shift;
-    my $opt     = shift;
+    my $opt     = $p->{ParseOptions};
 
     $p->_init_parser($opt);
     $p->{io_handle} = new IO::String($xml);
@@ -57,7 +57,7 @@ sub _parse_string {
 sub _parse_systemid {
     my $p       = shift;
     my $xml     = shift;
-    my $opt     = shift;
+    my $opt     = $p->{ParseOptions};
 
     $p->_init_parser($opt);
     $p->{io_handle} = new IO::File($xml, "r");
@@ -84,9 +84,14 @@ sub _init_parser {
         $self->{Rules} = undef;
     } else {
         unless (defined $rules) {
-            my $path = $INC{'WAP/SAXDriver/wbxml.pm'};
-            $path =~ s/wbxml\.pm$//i;
-            my $infile = $path . 'wbrules.pl';
+            my $infile;
+            if ($opt->{RulesPath}) {
+                $infile = $opt->{RulesPath};
+            } else {
+                my $path = $INC{'WAP/SAXDriver/wbxml.pm'};
+                $path =~ s/wbxml\.pm$//i;
+                $infile = $path . 'wap.wbrules2.pl';
+            }
             require $infile;
         }
         $self->{Rules} = $rules;
@@ -165,8 +170,6 @@ sub _parse {
 	$self->{Encoding} = undef;
 	$self->{App} = undef;
 
-	$self->SUPER::start_document( { } );
-
 	my $version = $self->get_version();
 	$self->get_publicid();
 	$self->get_charset();
@@ -180,14 +183,18 @@ sub _parse {
 	$self->{App} = $self->{Rules}->{App}{$self->{PublicId}}
 			if (exists $self->{Rules}->{App}{$self->{PublicId}});
 
-	if (exists $self->{Encoding}) {
-		$self->SUPER::xml_decl( {
-				Version			=> "1.0",
-				Encoding		=> $self->{Encoding},
-				Standalone		=> undef,
-				VersionWBXML	=> $version,
-		} );
-	}
+	$self->SUPER::start_document( {
+			Version			=> "1.0",
+			Encoding		=> $self->{Encoding},
+			Standalone		=> undef,
+			VersionWBXML	=> $version,
+	} );
+	$self->SUPER::xml_decl( {
+			Version			=> "1.0",
+			Encoding		=> $self->{Encoding},
+			Standalone		=> undef,
+			VersionWBXML	=> $version,
+	} );
 
 	my $rc = $self->body();
 	my $end = $self->SUPER::end_document( { } );
@@ -839,7 +846,8 @@ The following options are supported by C<WAP::SAXDriver::wbxml> :
  DTDHandler           handler to receive DTD events
  ErrorHandler         handler to receive error events
  Source               hash containing the input source for parsing
- UseOnlyDefaultRules  boolean, if true the file wbrules.pl is not loaded
+ UseOnlyDefaultRules  boolean, if true the file wap.wbrules2.pl is not loaded
+ RulesPath            path of alternate rules (standard is WAP/SAXDriver/wap.wbrules2.pl)
 
 If no handlers are provided then all events will be silently ignored,
 except for `C<fatal_error()>' which will cause a `C<die()>' to be
@@ -868,7 +876,10 @@ C<WAP::SAXDriver::wbxml> :
 
 Receive notification of the beginning of a document.
 
-No properties defined.
+ Version          The XML version, always 1.0.
+ Encoding         The encoding string, if any.
+ Standalone       undefined.
+ VersionWBXML     The version used for the binarization.
 
 =item end_document
 
@@ -970,6 +981,8 @@ No properties defined.
 =over 4
 
 =item xml_decl
+
+Deprecated in favour of start_document.
 
 Receive notification of a XML declaration event.
 

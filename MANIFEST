@@ -2,9 +2,11 @@ Changes
 MANIFEST
 Makefile.PL
 test.pl
-wbrules.pl
+wap.wbrules2.pl
+syncml.wbrules2.pl
 wbxml.pm
 wbxmld.pl
+syncmld.pl
 mkwbrules.pl
 README
 

@@ -4,7 +4,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     'NAME'          => 'WAP::SAXDriver::wbxml',
     'VERSION_FROM'  => 'wbxml.pm', # finds $VERSION
-    'ABSTRACT'      => 'SAX parser for WBXML file used by Wireless Application Protocol',
+    'ABSTRACT'      => 'SAX2 parser for WBXML file used by Wireless Application Protocol',
     'PREREQ_PM'     => {
                         'IO::File'          => 0,
                         'IO::String'        => 0,
@@ -14,10 +14,11 @@ WriteMakefile(
                         'XML::SAX::Writer'  => '0.44'
     },
     'PM'            => {
-                        'wbxml.pm'      => '$(INST_LIBDIR)/wbxml.pm',
-                        'wbrules.pl'    => '$(INST_LIBDIR)/wbrules.pl',
+                        'wbxml.pm'              => '$(INST_LIBDIR)/wbxml.pm',
+                        'wap.wbrules2.pl'       => '$(INST_LIBDIR)/wap.wbrules2.pl',
+                        'syncml.wbrules2.pl'    => '$(INST_LIBDIR)/syncml.wbrules2.pl',
     },
-    'EXE_FILES'     => ['wbxmld.pl'],
+    'EXE_FILES'     => ['wbxmld.pl', 'syncmld.pl', 'mkwbrules.pl'],
     'AUTHOR'        => "Francois PERRAD (francois.perrad\@gadz.org)",
     'dist'          => {
                         'COMPRESS'      => 'gzip',
