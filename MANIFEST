@@ -4,7 +4,7 @@ Makefile.PL
 test.pl
 wbrules.pl
 wbxml.pm
-xmld
-mkwbrules
+wbxmld.pl
+mkwbrules.pl
 README
 

@@ -9,13 +9,15 @@ WriteMakefile(
                         'IO::File'      => 0,
                         'IO::String'    => 0,
                         'I18N::Charset' => '1.15',
+                        'XML::SAX::Base'=> 0,
+                        'WAP::wbxml'    => '1.06',
     },
     'PM'            => {
                         'wbxml.pm'      => '$(INST_LIBDIR)/wbxml.pm',
                         'wbrules.pl'    => '$(INST_LIBDIR)/wbrules.pl',
     },
     'EXE_FILES'     => ['xmld'],
-    'AUTHOR'        => "Francois PERRAD (perrad\@besancon.sema.slb.com)",
+    'AUTHOR'        => "Francois PERRAD (francois.perrad\@gadz.org)",
     'dist'          => {
                         'COMPRESS'      => 'gzip',
                         'SUFFIX'        => '.gz',

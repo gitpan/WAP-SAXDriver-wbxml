@@ -15,14 +15,16 @@ Description:
 
 Prerequisites:
 --------------
-    This module needs IO::File, IO::String and I18N::Charset modules.
+    This module needs XML::SAX, XML::SAX::Base, IO::File, IO::String 
+    and I18N::Charset modules.
+    The script 'wbxmld.pl' needs XML::SAX::Writer module.
 
 Parametrization:
 ----------------
-    The script `mkwbrules' can rebuild the file `wbrules.pl' from
+    The script `mkwbrules.pl' can rebuild the file `wbrules.pl' from
     `WAP/wbrules.xml' that describes rules of the binarization
     (module WAP::wbxml).
-    This script needs WAP::wbxml, XML::Parser::PerlSAX, Data::Dumper and
+    This script needs XML::SAX::ParserFactory, Data::Dumper and
     POSIX modules.
 
 Build/Installation:
@@ -33,4 +35,4 @@ Build/Installation:
 	$ make install
 
 
-Send bug reports, comments and suggestions to perrad@besancon.sema.slb.com
+Send bug reports, comments and suggestions to francois.perrad@gadz.org

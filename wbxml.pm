@@ -2,115 +2,108 @@
 # WAP::SAXDriver::wbxml.pm
 #
 
-# glue of the methods new, parse and location comes from Ken MacLeod's
-# XML::Parser::PerlSAX and the canvas of the documentation.
-
 use strict;
 
 package WAP::SAXDriver::wbxml;
 
+use base qw(XML::SAX::Base);
 use I18N::Charset;
 use IO::File;
 use IO::String;
-use UNIVERSAL;
 
-use vars qw($VERSION $default_rules $rules);
+use vars qw($VERSION);
+$VERSION = "2.00";
 
-$VERSION = "1.02";
+sub _parse_characterstream {
+    my $p       = shift;
+    my $xml     = shift;
+    my $opt     = shift;
 
-sub new {
-	my $type = shift;
-	my $self = (@_ == 1) ? shift : { @_ };
-
-	return bless($self, $type);
+    $p->_init_parser($opt);
+    die __PACKAGE__,": Not an IO::Handle\n"
+            unless ($xml->isa('IO::Handle'));
+    $p->{io_handle} = $xml;
+    my $result = $p->_parse($opt);
+    $p->_cleanup;
+    return $result;
 }
 
-sub parse {
-	my $self = shift;
+sub _parse_bytestream {
+    my $p       = shift;
+    my $xml     = shift;
+    my $opt     = shift;
 
-	die __PACKAGE__,": parser instance ($self) already parsing\n"
-			if (defined $self->{ParseOptions});
+    $p->_init_parser($opt);
+    die __PACKAGE__,": Not an IO::Handle\n"
+            unless ($xml->isa('IO::Handle'));
+    $p->{io_handle} = $xml;
+    my $result = $p->_parse($opt);
+    $p->_cleanup;
+    return $result;
+}
 
-##	# If there's one arg and it has no ref, it's a string
-##	my $args;
-##	if (scalar (@_) == 1 && !ref($_[0])) {
-##		$args = { Source => { String => shift } };
-##	} else {
-##		$args = (scalar (@_) == 1) ? shift : { @_ };
-##	}
-	my $args = (scalar (@_) == 1) ? shift : { @_ };
+sub _parse_string {
+    my $p       = shift;
+    my $xml     = shift;
+    my $opt     = shift;
 
-	my $parse_options = { %$self, %$args };
-	$self->{ParseOptions} = $parse_options;
+    $p->_init_parser($opt);
+    $p->{io_handle} = new IO::String($xml);
+    my $result = $p->_parse($opt);
+    $p->_cleanup;
+    return $result;
+}
 
-	# ensure that we have at least one source
-	if (!defined $parse_options->{Source}
-		|| !(defined $parse_options->{Source}{String}
-		     || defined $parse_options->{Source}{ByteStream})) {
-##		     || defined $parse_options->{Source}{SystemId})) {
-		die __PACKAGE__,": no source defined for parse\n";
-	}
+sub _parse_systemid {
+    my $p       = shift;
+    my $xml     = shift;
+    my $opt     = shift;
 
-	# assign default Handler to any undefined handlers
-	if (defined $parse_options->{Handler}) {
-		$parse_options->{DocumentHandler} = $parse_options->{Handler}
-				if (!defined $parse_options->{DocumentHandler});
-		$parse_options->{DTDHandler} = $parse_options->{Handler}
-				if (!defined $parse_options->{DTDHandler});
-		$parse_options->{ErrorHandler} = $parse_options->{Handler}
-				if (!defined $parse_options->{ErrorHandler});
-	}
+    $p->_init_parser($opt);
+    $p->{io_handle} = new IO::File($xml, "r");
+    die "Can't open $xml ($!)\n"
+            unless (defined $p->{io_handle});
+    my $result = $p->_parse($opt);
+    $p->_cleanup;
+    return $result;
+}
 
-	if (defined $parse_options->{DocumentHandler}) {
-		# cache DocumentHandler in self for callbacks
-		$self->{DocumentHandler} = $parse_options->{DocumentHandler};
-	}
+our($default_rules, $rules);
 
-	if (defined $parse_options->{DTDHandler}) {
-		# cache DTDHandler in self for callbacks
-		$self->{DTDHandler} = $parse_options->{DTDHandler};
-	}
+sub _init_parser {
+    my $self = shift;
+    my $opt  = shift;
 
-	if (defined $parse_options->{ErrorHandler}) {
-		# cache ErrorHandler in self for callbacks
-		$self->{ErrorHandler} = $parse_options->{ErrorHandler};
-	}
+    die __PACKAGE__,": parser instance ($self) already parsing\n"
+            if defined $self->{_InParse};
 
-	if (defined $self->{ParseOptions}{Source}{ByteStream}) {
-		die __PACKAGE__,": Not an IO::Handle\n"
-				unless ($self->{ParseOptions}{Source}{ByteStream}->isa('IO::Handle'));
-		$self->{io_handle} = $self->{ParseOptions}{Source}{ByteStream};
-	} elsif (defined $self->{ParseOptions}{Source}{String}) {
-		$self->{io_handle} = new IO::String($self->{ParseOptions}{Source}{String});
-##	} elsif (defined $self->{ParseOptions}{Source}{SystemId}) {
-##		my $filename = $self->{ParseOptions}{Source}{SystemId};
-##		$self->{io_handle} = new IO::File($filename,"r");
-##		die __PACKAGE__,": Couldn't open $filename:\n$!"
-##				unless (defined $self->{io_handle});
-	}
+    $self->{_InParse} = 1;
 
-	if ($self->{ParseOptions}{UseOnlyDefaultRules}) {
-		$self->{Rules} = undef;
-	} else {
-		unless (defined $rules) {
-			my $path = $INC{'WAP/SAXDriver/wbxml.pm'};
-			$path =~ s/wbxml\.pm$//i;
-			my $infile = $path . 'wbrules.pl';
-			require $infile;
-		}
-		$self->{Rules} = $rules;
-	}
+    if ($opt->{UseOnlyDefaultRules}) {
+        $self->{Rules} = undef;
+    } else {
+        unless (defined $rules) {
+            my $path = $INC{'WAP/SAXDriver/wbxml.pm'};
+            $path =~ s/wbxml\.pm$//i;
+            my $infile = $path . 'wbrules.pl';
+            require $infile;
+        }
+        $self->{Rules} = $rules;
+    }
+}
 
-	my $result = $self->_parse();
 
-	# clean up parser instance
-	delete $self->{io_handle};
-	delete $self->{ParseOptions};
-	delete $self->{DocumentHandler};
-	delete $self->{DTDHandler};
-	delete $self->{ErrorResolver};
+sub _cleanup {
+    my $self = shift;
 
-	return $result;
+    $self->{_InParse} = 0;
+    delete $self->{PublicId};
+    delete $self->{Encoding};
+    delete $self->{App};
+    delete $self->{publicid_idx};
+    delete $self->{root_name};
+    delete $self->{io_strtbl} if (exists $self->{io_strtbl});
+    delete $self->{io_handle};
 }
 
 sub location {
@@ -164,26 +157,20 @@ use constant ATTR_MASK		=> 0x7F;
 
 sub _parse {
 	my $self = shift;
+	my ($opt) = @_;
 
 	$self->{PublicId} = undef;
 	$self->{Encoding} = undef;
 	$self->{App} = undef;
 
-	if ($self->{DocumentHandler}->can('set_document_locator')) {
-		$self->{DocumentHandler}->set_document_locator( {		# fire
-				Locator		=> $self
-		} );
-	}
-	if ($self->{DocumentHandler}->can('start_document')) {
-		$self->{DocumentHandler}->start_document( { } );		# fire
-	}
+	$self->SUPER::start_document( { } );
 
 	my $version = $self->get_version();
 	$self->get_publicid();
 	$self->get_charset();
 	if (	    !defined $self->{Encoding}
-			and exists $self->{ParseOptions}{Source}{Encoding} ) {
-		$self->{Encoding} = $self->{ParseOptions}{Source}{Encoding};
+			and exists $opt->{Source}{Encoding} ) {
+		$self->{Encoding} = $self->{Source}{Encoding};
 	}
 	$self->get_strtbl();
 	$self->{PublicId} = $self->get_str_t($self->{publicid_idx})
@@ -192,44 +179,28 @@ sub _parse {
 			if (exists $self->{Rules}->{App}{$self->{PublicId}});
 
 	if (exists $self->{Encoding}) {
-		if ($self->{DTDHandler}->can('xml_decl')) {
-			$self->{DTDHandler}->xml_decl( {					# fire
-					Version			=> "1.0",
-					Encoding		=> $self->{Encoding},
-					Standalone		=> undef,
-					VersionWBXML	=> $version,
-					PublicId		=> $self->{PublicId}
-			} );
-		}
+		$self->SUPER::xml_decl( {
+				Version			=> "1.0",
+				Encoding		=> $self->{Encoding},
+				Standalone		=> undef,
+				VersionWBXML	=> $version,
+		} );
 	}
 
 	my $rc = $self->body();
-	my $end = undef;
-	if ($self->{DocumentHandler}->can('end_document')) {
-		$end = $self->{DocumentHandler}->end_document( { } );
-	}
+	my $end = $self->SUPER::end_document( { } );
 
 	unless (defined $rc) {
 		my $pos = $self->{io_handle}->tell();
-		if ($self->{ErrorHandler}->can('fatal_error')) {
-			$self->{ErrorHandler}->fatal_error( {
-					Message			=> "",
-					PublicId		=> $self->{PublicId},
-					ColumnNumber	=> $pos,
-					LineNumber		=> 1,
-					BytePosition	=> $pos
-			} );
-		} else {
-			die __PACKAGE__,": Fatal error  at position $pos\n";
-		}
+		$self->SUPER::fatal_error( {
+				Message			=> "",
+				PublicId		=> $self->{PublicId},
+				ColumnNumber	=> $pos,
+				LineNumber		=> 1,
+				BytePosition	=> $pos
+		} );
+		die __PACKAGE__,": Fatal error at position $pos\n";
 	}
-
-	# clean up parser instance
-	delete $self->{PublicId};
-	delete $self->{Encoding};
-	delete $self->{App};
-	delete $self->{publicid_idx};
-	delete $self->{io_strtbl} if (exists $self->{io_strtbl});
 
 	return $end;
 }
@@ -366,12 +337,10 @@ sub pi {
 	}
 	delete $self->{attrs};
 	delete $self->{attrv};
-	if ($self->{DocumentHandler}->can('processing_instruction')) {
-		$self->{DocumentHandler}->processing_instruction( {		# fire
-				Target		=> $target,
-				Data		=> $data
-		} );
-	}
+	$self->SUPER::processing_instruction( {
+			Target		=> $target,
+			Data		=> $data
+	} );
 	return 1;
 }
 
@@ -396,36 +365,48 @@ sub element {
 			$self->warning("$name unreferenced");
 		}
 	}
-	my %attrs;
+	unless (exists $self->{root_name}) {
+		my $system_id = $self->{App}->{systemid} || $name . ".dtd";
+		$self->SUPER::start_dtd( {
+				Name			=> $name,
+				PublicId		=> $self->{PublicId},
+				SystemId		=> $system_id
+		} );
+		$self->SUPER::end_dtd( { } );
+		$self->{root_name} = $name;
+	}
+	my %saxattr;
 	if ($tag & HAS_ATTR) {
 		my $attr = $self->get_attr();
 		while ($attr != _END) {
 			my $rc = $self->attribute($attr);
 			return undef unless (defined $rc);
-			$attrs{$self->{attrs}} = $self->{attrv}
-					if (exists $self->{attrs});
+			if (exists $self->{attrs}) {
+				my $lname = $self->{attrs};
+				my $at = {
+						Name		=> $lname,
+						Value		=> $self->{attrv}
+				};
+				$saxattr{"{}$lname"} = $at;
+			}
 			$attr = $self->get_attr();
 		}
 		delete $self->{attrs};
 		delete $self->{attrv};
 	}
-	if ($self->{DocumentHandler}->can('start_element')) {
-		$self->{DocumentHandler}->start_element( {				# fire
-				Name		=> $name,
-				Attributes	=> \%attrs
-		} );
-	}
+	$self->SUPER::start_element( {
+			Name		=> $name,
+			Attributes	=> \%saxattr
+	} );
 	if ($tag & HAS_CHILD) {
 		while ((my $child = $self->get_tag()) != _END) {
 			my $rc = $self->content($child);
 			return undef unless (defined $rc);
 		}
 	}
-	if ($self->{DocumentHandler}->can('end_element')) {
-		$self->{DocumentHandler}->end_element( {				# fire
-				Name		=> $name
-		} );
-	}
+	$self->SUPER::end_element( {
+			Name		=> $name
+	} );
 	return 1;
 }
 
@@ -437,7 +418,7 @@ sub content {
 	if      ($tag == ENTITY) {
 		my $entcode = $self->getmb32();
 		return undef unless (defined $entcode);
-		$self->{DocumentHandler}->characters( {					# fire
+		$self->SUPER::characters( {
 				Data => chr $entcode
 		} );
 	} elsif ($tag == STR_I) {
@@ -447,7 +428,7 @@ sub content {
 				and exists $self->{App}{variable_subs} ) {
 			$string =~ s/\$/\$\$/g;
 		}
-		$self->{DocumentHandler}->characters( {					# fire
+		$self->SUPER::characters( {
 				Data => $string
 		} );
 	} elsif ($tag == EXT_I_0) {
@@ -455,7 +436,7 @@ sub content {
 		return undef unless (defined $string);
 		if (	    defined $self->{App}
 				and exists $self->{App}{variable_subs} ) {
-			$self->{DocumentHandler}->characters( {				# fire
+			$self->SUPER::characters( {
 					Data => "\$($string:escape)"
 			} );
 		} else {
@@ -466,7 +447,7 @@ sub content {
 		return undef unless (defined $string);
 		if (	    defined $self->{App}
 				and exists $self->{App}{variable_subs} ) {
-			$self->{DocumentHandler}->characters( {				# fire
+			$self->SUPER::characters( {
 				Data => "\$($string:unesc)"
 			} );
 		} else {
@@ -477,7 +458,7 @@ sub content {
 		return undef unless (defined $string);
 		if (	    defined $self->{App}
 				and exists $self->{App}{variable_subs} ) {
-			$self->{DocumentHandler}->characters( {				# fire
+			$self->SUPER::characters( {
 				Data => "\$($string)"
 			} );
 		} else {
@@ -492,7 +473,7 @@ sub content {
 		return undef unless (defined $string);
 		if (	    defined $self->{App}
 				and exists $self->{App}{variable_subs} ) {
-			$self->{DocumentHandler}->characters( {				# fire
+			$self->SUPER::characters( {
 					Data => "\$($string:escape)"
 			} );
 		} else {
@@ -504,7 +485,7 @@ sub content {
 		return undef unless (defined $string);
 		if (	    defined $self->{App}
 				and exists $self->{App}{variable_subs} ) {
-			$self->{DocumentHandler}->characters( {				# fire
+			$self->SUPER::characters( {
 				Data => "\$($string:unesc)"
 			} );
 		} else {
@@ -516,7 +497,7 @@ sub content {
 		return undef unless (defined $string);
 		if (	    defined $self->{App}
 				and exists $self->{App}{variable_subs} ) {
-			$self->{DocumentHandler}->characters( {				# fire
+			$self->SUPER::characters( {
 				Data => "\$($string)"
 			} );
 		} else {
@@ -530,7 +511,7 @@ sub content {
 				and exists $self->{App}{variable_subs} ) {
 			$string =~ s/\$/\$\$/g;
 		}
-		$self->{DocumentHandler}->characters( {					# fire
+		$self->SUPER::characters( {
 				Data => $string
 		} );
 	} elsif ($tag == EXT_0) {
@@ -744,33 +725,35 @@ sub warning {
 	my $self = shift;
 	my ($msg) = @_;
 	my $pos = $self->{io_handle}->tell();
-	if ($self->{ErrorHandler}->can('warning')) {
-		$self->{ErrorHandler}->warning( {						# fire
-				Message			=> $msg,
-				PublicId		=> $self->{PublicId},
-				ColumnNumber	=> $pos,
-				LineNumber		=> 1,
-				BytePosition	=> $pos
-		} );
-	} else {
-		warn __PACKAGE__,": Warning: $msg\n\tat position $pos\n";
-	}
+	$self->{message_no_op} = __PACKAGE__ . ": Warning: $msg\n\tat position $pos\n";
+	$self->SUPER::warning( {
+			Message			=> $msg,
+			PublicId		=> $self->{PublicId},
+			ColumnNumber	=> $pos,
+			LineNumber		=> 1,
+			BytePosition	=> $pos
+	} );
 }
 
 sub error {
 	my $self = shift;
 	my ($msg) = @_;
 	my $pos = $self->{io_handle}->tell();
-	if ($self->{ErrorHandler}->can('error')) {
-		$self->{ErrorHandler}->error( {							# fire
-				Message			=> $msg,
-				PublicId		=> $self->{PublicId},
-				ColumnNumber	=> $pos,
-				LineNumber		=> 1,
-				BytePosition	=> $pos
-		} );
-	} else {
-		warn __PACKAGE__,": Error: $msg\n\tat position $pos\n";
+	$self->{message_no_op} = __PACKAGE__ . ": Error: $msg\n\tat position $pos\n";
+	$self->SUPER::error( {
+			Message			=> $msg,
+			PublicId		=> $self->{PublicId},
+			ColumnNumber	=> $pos,
+			LineNumber		=> 1,
+			BytePosition	=> $pos
+	} );
+}
+
+sub no_op {
+	my $self = shift;
+	if (exists $self->{message_no_op}) {
+		warn $self->{message_no_op};
+		delete $self->{message_no_op};
 	}
 }
 
@@ -791,10 +774,10 @@ WAP::SAXDriver::wbxml - SAX parser for WBXML file
 
 =head1 DESCRIPTION
 
-C<WAP::SAXDriver::wbxml> is a PerlSAX parser.
+C<WAP::SAXDriver::wbxml> is a SAX2 driver, and it inherits of XML::SAX::Base.
 This man page summarizes the specific options, handlers, and
 properties supported by C<WAP::SAXDriver::wbxml>; please refer to the
-PerlSAX standard in `C<PerlSAX.pod>' for general usage information.
+SAX 2.0 standard for general usage information.
 
 A WBXML file is the binarized form of XML file according the specification :
 
@@ -825,7 +808,12 @@ Parses a document.  Options, described below, are passed as key-value
 pairs or as a single hash.  Options passed to `C<parse()>' override
 default options in the parser object.
 
-=item location
+=item * parse_file, parse_uri, parse_string
+
+These are all convenience variations on parse(), and in fact simply
+set up the options before calling it.
+
+=item location (SAX1)
 
 Returns the location as a hash:
 
@@ -867,7 +855,7 @@ then preference is given first to `C<ByteStream>', then `C<String>'.
 The following handlers and properties are supported by
 C<WAP::SAXDriver::wbxml> :
 
-=head2 DocumentHandler methods
+=head2 Content Events
 
 =over 4
 
@@ -914,29 +902,13 @@ Receive notification of a processing instruction.
 
 =back
 
-=head2 DTDHandler methods
-
-=over 4
-
-=item xml_decl
-
-Receive notification of an XML declaration event.
-
- Version          The XML version, always 1.0.
- Encoding         The encoding string, if any.
- Standalone       undefined.
- VersionWBXML     The version used for the binarization.
- PublicId         The document's public identifier.
-
-=back
-
-=head2 ErrorHandler methods
+=head2 Error Events
 
 =over 4
 
 =item warning
 
-Receive notification of an warning event.
+Receive notification of a warning event.
 
   Message         The detailed explanation.
   BytePosition    The current byte position of the parse.
@@ -958,13 +930,48 @@ Receive notification of an error event.
 
 =item fatal_error
 
-Receive notification of an fatal error event.
+Receive notification of a fatal error event.
 
   BytePosition    The current byte position of the parse.
   ColumnNumber    The column number of the parse, equals to BytePosition.
   LineNumber      The line number of the parse, always equals to 1.
   PublicId        A string containing the public identifier, or undef
                   if none is available.
+
+=back
+
+=head2 Lexical Events
+
+=over 4
+
+=item start_dtd
+
+Receive notification of the beginning of a DTD
+
+ Name             The document type name
+ PublicId         The declared public identifier for the external DTD
+ SystemId         The declared system identifier for the external DTD (may be wrong)
+
+=item end_dtd
+
+Receive notification of the end of a DTD.
+
+No properties defined.
+
+=back
+
+=head2 SAX1 methods
+
+=over 4
+
+=item xml_decl
+
+Receive notification of a XML declaration event.
+
+ Version          The XML version, always 1.0.
+ Encoding         The encoding string, if any.
+ Standalone       undefined.
+ VersionWBXML     The version used for the binarization.
 
 =back
 
@@ -979,14 +986,14 @@ See E<lt>http://www.wapforum.org/what/copyright.htmE<gt>.
 
 =head1 AUTHOR
 
-Francois PERRAD, E<lt>perrad@besancon.sema.slb.comE<gt>
+Francois PERRAD, francois.perrad@gadz.org
 
 =head1 SEE ALSO
 
-perl(1), PerlSAX.pod(3), WAP::wbxml
+XML::SAX, XML::SAX::Base, WAP::wbxml
 
- Extensible Markup Language (XML) <http://www.w3c.org/XML/>
- Binary XML Content Format (WBXML) <http://www.wapforum.org/>
- Simple API for XML (SAX) <http://www.saxproject.org/>
+Extensible Markup Language (XML) http://www.w3c.org/XML/
+Binary XML Content Format (WBXML) http://www.wapforum.org/
+Simple API for XML (SAX) http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/~checkout~/perl-xml/libxml-perl/doc/sax-2.0.html?rev=HEAD&content-type=text/html
 
 =cut

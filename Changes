@@ -1,5 +1,9 @@
 Revision history for Perl extension WAP::SAXDriver::wbxml.
 
+2.00  Thu Sep 24 08:30:00 2002
+	- interface SAX 2.0
+   - rename xmld to wbxmld.pl
+
 1.02  Thu Feb 14 20:30:00 2002
 	- use of I18N-Charset
 
