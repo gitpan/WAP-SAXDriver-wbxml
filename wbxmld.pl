@@ -3,11 +3,21 @@
 use strict;
 
 use Getopt::Std;
+use Pod::Usage;
 use XML::SAX::Writer;
 use WAP::SAXDriver::wbxml;
 
 my %opts;
-getopts('bp:', \%opts);
+getopts('bhp:v', \%opts);
+
+if ($opts{v}) {
+	print "WAP::SAXDriver::wbxml $WAP::SAXDriver::wbxml::VERSION\n";
+	print "$0\n";
+	print "Perl $] on $^O\n";
+	exit;
+}
+pod2usage(-verbose => 1) if ($opts{h});
+pod2usage() unless (@ARGV and scalar @ARGV <= 2);
 
 my $consumer = new XML::SAX::Writer::StringConsumer();
 my $handler = new XML::SAX::Writer(Output => $consumer);
@@ -15,8 +25,6 @@ my $error = new MyErrorHandler();
 my $parser = new WAP::SAXDriver::wbxml(Handler => $handler, ErrorHandler => $error, RulesPath => $opts{p});
 
 my $file = $ARGV[0];
-die "No input.\n"
-		unless ($file);
 my $io = new IO::File($file,"r");
 die "Can't open $file ($!).\n"
 		unless (defined $io);
@@ -32,15 +40,21 @@ my $doc = $parser->parse(
 );
 
 if ($opts{b}) {
-	my @tab;
-	foreach (split /(<[^>']*(?:'[^']*'[^>']*)*>)/, ${$consumer->finalize()}) {
-		next unless ($_);
-		pop @tab if (/^<\//);
-		print @tab,$_,"\n";
-		push @tab,'  ' if (/^<[^\/?!]/ and /[^\/]>$/);
-	}
+	print beautify(${$consumer->finalize()});
 } else {
 	print ${$consumer->finalize()};
+}
+
+sub beautify {
+	my $out = '';
+	my @tab;
+	foreach (split /(<[^>']*(?:'[^']*'[^>']*)*>)/, shift) {
+		next unless ($_);
+		pop @tab if (/^<\//);
+		$out .= "@tab$_\n";
+		push @tab,'  ' if (/^<[^\/?!]/ and /[^\/]>$/);
+	}
+	return $out;
 }
 
 package MyErrorHandler;
@@ -75,7 +89,7 @@ __END__
 
 wbxmld - WBXML Disassembler
 
-=head1 SYNOPSYS
+=head1 SYNOPSIS
 
 wbxmld [B<-b>] [B<-p> I<path>] I<file>
 
@@ -87,9 +101,17 @@ wbxmld [B<-b>] [B<-p> I<path>] I<file>
 
 Beautify
 
+=item -h
+
+Display help.
+
 =item -p
 
-Specify the path of rules (the default is WAP/SAXDriver).
+Specify the path of rules (the default is WAP/SAXDriver/wap.wbrules2.xml).
+
+=item -v
+
+Display version.
 
 =back
 

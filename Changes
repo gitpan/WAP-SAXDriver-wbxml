@@ -1,5 +1,11 @@
 Revision history for Perl extension WAP::SAXDriver::wbxml.
 
+2.04  Wed Jul  7 18:30:00 2004
+	- wbxmld.pl : add option -h (display help)
+	- wbxmld.pl : add option -v (display version)
+	- mkwbrules.pl : add support for Wireless Village
+	- wbxml.pm : add support for Wireless Village
+
 2.03  Thu Jul 22 12:30:00 2003
 	- add option -p : path for rules
 	- rename wbrules.pl to wap.wbrules2.pl

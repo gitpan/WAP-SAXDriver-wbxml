@@ -29,6 +29,7 @@ die "Can't open $infile ($!).\n"
 
 $parser->parse_file($io);
 delete $rules->{app_curr};
+delete $rules->{ext_curr};
 
 my $d = Data::Dumper->new([$rules], [qw(rules)]);
 #$d->Indent(1);
@@ -91,10 +92,13 @@ sub start_element {
 		# <!ATTLIST TAG token NMTOKEN #REQUIRED>
 		# <!ATTLIST TAG name NMTOKEN #REQUIRED>
 		# <!ATTLIST TAG codepage NMTOKEN #IMPLIED>
+		# <!ATTLIST TAG encoding (integer|datetime) #IMPLIED>
 		my $token = hex $attrs->{"{}token"}->{Value};
 		$token += 256 * hex $attrs->{"{}codepage"}->{Value}
 				if (exists $attrs->{"{}codepage"});
 		$self->{App}{$self->{app_curr}}->{TAG}{$token} = $attrs->{"{}name"}->{Value};
+		$self->{App}{$self->{app_curr}}->{TagEncoding}{$token} = $attrs->{"{}encoding"}->{Value}
+				if (exists $attrs->{"{}encoding"});
 	} elsif ($name eq 'ATTRSTART') {
 		# <!ELEMENT ATTRSTART EMPTY>
 		# <!ATTLIST ATTRSTART token NMTOKEN #REQUIRED>
@@ -125,6 +129,14 @@ sub start_element {
 		$token += 256 * hex $attrs->{"{}codepage"}->{Value}
 				if (exists $attrs->{"{}codepage"});
 		$self->{App}{$self->{app_curr}}->{ATTRVALUE}{$token} = $attrs->{"{}value"}->{Value};
+	} elsif ($name =~ /(Ext[0-2]Value)s/) {
+		$self->{ext_curr} = uc $1;
+	} elsif ($name eq 'EXTVALUE') {
+		# <!ELEMENT EXTVALUE EMPTY>
+		# <!ATTLIST EXTVALUE index NMTOKEN #REQUIRED>
+		# <!ATTLIST EXTVALUE value CDATA #REQUIRED>
+		my $index = hex $attrs->{"{}index"}->{Value};
+		$self->{App}{$self->{app_curr}}->{$self->{ext_curr}}{$index} = $attrs->{"{}value"}->{Value};
 	}
 
 }

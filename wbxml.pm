@@ -12,7 +12,7 @@ use IO::File;
 use IO::String;
 
 use vars qw($VERSION);
-$VERSION = "2.03";
+$VERSION = "2.04";
 
 sub _parse_characterstream {
     my $p       = shift;
@@ -130,7 +130,7 @@ sub location {
 	return { @properties };
 }
 
-###############################################################################
+################################# W B X M L ##################################
 
 use integer;
 
@@ -410,7 +410,7 @@ sub element {
 	} );
 	if ($tag & HAS_CHILD) {
 		while ((my $child = $self->get_tag()) != _END) {
-			my $rc = $self->content($child);
+			my $rc = $self->content($child,$token);
 			return undef unless (defined $rc);
 		}
 	}
@@ -422,7 +422,7 @@ sub element {
 
 sub content {
 	my $self = shift;
-	my ($tag) = @_;
+	my ($tag,$parent) = @_;
 
 	return undef unless (defined $tag);
 	if      ($tag == ENTITY) {
@@ -479,37 +479,64 @@ sub content {
 		return undef unless (defined $rc);
 	} elsif ($tag == EXT_T_0) {
 		my $idx = $self->getmb32();
-		my $string = $self->get_str_t($idx);
-		return undef unless (defined $string);
 		if (	    defined $self->{App}
 				and exists $self->{App}{variable_subs} ) {
+			my $string = $self->get_str_t($idx);
+			return undef unless (defined $string);
 			$self->SUPER::characters( {
 					Data => "\$($string:escape)"
 			} );
+		} elsif (   defined $self->{App}
+				and exists $self->{App}{EXT0VALUE}) {
+			if (exists $self->{App}{EXT0VALUE}{$idx}) {
+				$self->SUPER::characters( {
+						Data => $self->{App}{EXT0VALUE}{$idx}
+				} );
+			} else {
+				$self->error("EXT_T_0 $idx unknown");
+			}
 		} else {
 			$self->error("EXT_T_0 unexpected");
 		}
 	} elsif ($tag == EXT_T_1) {
 		my $idx = $self->getmb32();
-		my $string = $self->get_str_t($idx);
-		return undef unless (defined $string);
 		if (	    defined $self->{App}
 				and exists $self->{App}{variable_subs} ) {
+			my $string = $self->get_str_t($idx);
+			return undef unless (defined $string);
 			$self->SUPER::characters( {
 				Data => "\$($string:unesc)"
 			} );
+		} elsif (   defined $self->{App}
+				and exists $self->{App}{EXT1VALUE}) {
+			if (exists $self->{App}{EXT1VALUE}{$idx}) {
+				$self->SUPER::characters( {
+						Data => $self->{App}{EXT1VALUE}{$idx}
+				} );
+			} else {
+				$self->error("EXT_T_1 $idx unknown");
+			}
 		} else {
 			$self->error("EXT_T_1 unexpected");
 		}
 	} elsif ($tag == EXT_T_2) {
 		my $idx = $self->getmb32();
-		my $string = $self->get_str_t($idx);
-		return undef unless (defined $string);
 		if (	    defined $self->{App}
 				and exists $self->{App}{variable_subs} ) {
+			my $string = $self->get_str_t($idx);
+			return undef unless (defined $string);
 			$self->SUPER::characters( {
 				Data => "\$($string)"
 			} );
+		} elsif (   defined $self->{App}
+				and exists $self->{App}{EXT2VALUE}) {
+			if (exists $self->{App}{EXT2VALUE}{$idx}) {
+				$self->SUPER::characters( {
+						Data => $self->{App}{EXT2VALUE}{$idx}
+				} );
+			} else {
+				$self->error("EXT_T_2 $idx unknown");
+			}
 		} else {
 			$self->error("EXT_T_2 unexpected");
 		}
@@ -533,9 +560,53 @@ sub content {
 	} elsif ($tag == OPAQUE) {
 		my $data = $self->get_opaque();
 		return undef unless (defined $data);
-		$self->SUPER::characters( {
-				Data => $data
-		} );
+		my $encoding = (defined $self->{App} and exists $self->{App}{TagEncoding}{$parent})
+		             ? $self->{App}{TagEncoding}{$parent} : "";
+		if      ($encoding eq "base64") {
+			use MIME::Base64;
+			my $encoded = encode_base64($data);
+			$self->SUPER::characters( {
+					Data => $encoded
+			} );
+		} elsif ($encoding eq "datetime") {
+			my $len = length $data;
+			my $value = "";
+			if ($len == 6) {
+				my @byte  = unpack "C*",$data;
+				my $year  = ($byte[0] << 6) | ($byte[1] >> 2);
+				my $month = (($byte[1] & 0x3) << 2) | ($byte[2] >> 6);
+				my $day   = (($byte[2] >> 1) & 0x1F);
+				my $hour  = (($byte[2] & 0x1) << 4) | ($byte[3] >> 4);
+				my $min   = (($byte[3] & 0xF) << 2) | ($byte[4] >> 6);
+				my $sec   = ($byte[4] & 0x3F);
+				my $tz    = $byte[5];
+				$value = sprintf("%04d%02d%02dT%02d%02d%02d%c",$year,$month,$day,$hour,$min,$sec,$tz);
+			} else {
+				$self->error("OPAQUE : invalid 'datetime'");
+			}
+			$self->SUPER::characters( {
+					Data => $value
+			} );
+		} elsif ($encoding eq "integer") {
+			my $len = length $data;
+			my $value = 0;
+			if      ($len == 1) {
+				$value = unpack "C",$data;
+			} elsif ($len == 2) {
+				$value = unpack "n",$data;
+			} elsif ($len == 4) {
+				$value = unpack "N",$data;
+			} else {
+				$self->error("OPAQUE : invalid 'integer'");
+			}
+			$self->SUPER::characters( {
+					Data => "$value"
+			} );
+		} else {
+			$self->SUPER::characters( {
+					Data => $data
+			} );
+		}
 	} else {
 		my $rc = $self->element($tag);	# LITERAL and all TAG
 		return undef unless (defined $rc);
@@ -596,31 +667,52 @@ sub attribute {
 		}
 	} elsif ($attr == EXT_T_0) {	# ATTRV
 		my $idx = $self->getmb32();
-		my $string = $self->get_str_t($idx);
-		return undef unless (defined $string);
 		if (	    defined $self->{ATTRSTART}
 				and $self->{ATTRSTART}{validate} eq 'vdata' ) {
+			my $string = $self->get_str_t($idx);
+			return undef unless (defined $string);
 			$self->{attrv} .= "\$($string:escape)";
+		} elsif (   defined $self->{App}
+				and exists $self->{App}{EXT0VALUE}) {
+			if (exists $self->{App}{EXT0VALUE}{$idx}) {
+				$self->{attrv} .= $self->{App}{EXT0VALUE}{$idx}
+			} else {
+				$self->error("EXT_T_0 $idx unknown");
+			}
 		} else {
 			$self->error("EXT_T_0 unexpected");
 		}
 	} elsif ($attr == EXT_T_1) {	# ATTRV
 		my $idx = $self->getmb32();
-		my $string = $self->get_str_t($idx);
-		return undef unless (defined $string);
 		if (	    defined $self->{ATTRSTART}
 				and $self->{ATTRSTART}{validate} eq 'vdata' ) {
+			my $string = $self->get_str_t($idx);
+			return undef unless (defined $string);
 			$self->{attrv} .= "\$($string:unesc)";
+		} elsif (   defined $self->{App}
+				and exists $self->{App}{EXT1VALUE}) {
+			if (exists $self->{App}{EXT1VALUE}{$idx}) {
+				$self->{attrv} .= $self->{App}{EXT1VALUE}{$idx}
+			} else {
+				$self->error("EXT_T_1 $idx unknown");
+			}
 		} else {
 			$self->error("EXT_T_1 unexpected");
 		}
 	} elsif ($attr == EXT_T_2) {	# ATTRV
 		my $idx = $self->getmb32();
-		my $string = $self->get_str_t($idx);
-		return undef unless (defined $string);
 		if (	    defined $self->{ATTRSTART}
 				and $self->{ATTRSTART}{validate} eq 'vdata' ) {
+			my $string = $self->get_str_t($idx);
+			return undef unless (defined $string);
 			$self->{attrv} .= "\$($string)";
+		} elsif (   defined $self->{App}
+				and exists $self->{App}{EXT2VALUE}) {
+			if (exists $self->{App}{EXT2VALUE}{$idx}) {
+				$self->{attrv} .= $self->{App}{EXT2VALUE}{$idx}
+			} else {
+				$self->error("EXT_T_2 $idx unknown");
+			}
 		} else {
 			$self->error("EXT_T_2 unexpected");
 		}
@@ -995,7 +1087,7 @@ Receive notification of a XML declaration event.
 
 =head1 COPYRIGHT
 
-(c) 2002 Francois PERRAD, France. All rights reserved.
+(c) 2002-2004 Francois PERRAD, France. All rights reserved.
 
 This program is distributed under the terms of the Artistic Licence.
 

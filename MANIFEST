@@ -4,6 +4,7 @@ Makefile.PL
 test.pl
 wap.wbrules2.pl
 syncml.wbrules2.pl
+wv.wbrules2.pl
 wbxml.pm
 wbxmld.pl
 syncmld.pl
