@@ -11,7 +11,7 @@ WriteMakefile(
     },
     'PM'            => {
                         'wbxml.pm'      => '$(INST_LIBDIR)/wbxml.pm',
-                        'wbrules.l'     => '$(INST_LIBDIR)/wbrules.pl',
+                        'wbrules.pl'    => '$(INST_LIBDIR)/wbrules.pl',
     },
     'EXE_FILES'     => ['xmld'],
     'AUTHOR'        => "Francois PERRAD (perrad\@besancon.sema.slb.com)",

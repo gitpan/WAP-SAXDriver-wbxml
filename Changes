@@ -1,5 +1,8 @@
 Revision history for Perl extension WAP::SAXDriver::wbxml.
 
+1.01  Wed Jan 23 17:30:00 2002
+	- bug in Makefile.PL
+
 1.0   Mon Jan 21 20:00:00 2002 
 	- first release
 

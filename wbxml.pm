@@ -15,7 +15,7 @@ use UNIVERSAL;
 
 use vars qw($VERSION $default_rules $rules);
 
-$VERSION = "1.0";
+$VERSION = "1.01";
 
 sub BEGIN {
 	$default_rules = bless({},'Rules');
