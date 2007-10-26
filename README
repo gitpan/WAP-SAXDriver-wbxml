@@ -17,11 +17,11 @@ Prerequisites:
 --------------
     This module needs XML::SAX, XML::SAX::Base, IO::File, IO::String 
     and I18N::Charset modules.
-    The script 'wbxmld.pl' needs XML::SAX::Writer module.
+    The script 'wbxmld' needs XML::SAX::Writer module.
 
 Parametrization:
 ----------------
-    The script `mkwbrules.pl' can rebuild the file `wbrules2.pl' from
+    The script `mkwbrules' can rebuild the file `wbrules2.pl' from
     `WAP/wap.wbrules.xml' that describes rules of the binarization
     (module WAP::wbxml).
     This script needs XML::SAX::ParserFactory, Data::Dumper and

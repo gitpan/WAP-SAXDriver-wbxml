@@ -1,0 +1,18 @@
+--- #YAML:1.0
+name:                WAP-SAXDriver-wbxml
+version:             2.05
+abstract:            SAX2 parser for WBXML file used by Wireless Application Protocol
+license:             ~
+generated_by:        ExtUtils::MakeMaker version 6.3201
+distribution_type:   module
+requires:     
+    I18N::Charset:                 1.15
+    IO::File:                      0
+    IO::String:                    0
+    XML::SAX::Base:                1.00
+    XML::SAX::Writer:              0.44
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
+    version: 1.2
+author:
+    - Francois PERRAD (francois.perrad@gadz.org)

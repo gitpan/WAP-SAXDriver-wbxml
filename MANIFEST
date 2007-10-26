@@ -2,12 +2,13 @@ Changes
 MANIFEST
 Makefile.PL
 test.pl
-wap.wbrules2.pl
-syncml.wbrules2.pl
-wv.wbrules2.pl
-wbxml.pm
-wbxmld.pl
-syncmld.pl
-mkwbrules.pl
+lib/WAP/SAXDriver/wbxml.pm
+lib/WAP/SAXDriver/wbxml/wap.wbrules2.pl
+lib/WAP/SAXDriver/wbxml/syncml.wbrules2.pl
+lib/WAP/SAXDriver/wbxml/wv.wbrules2.pl
+bin/wbxmld
+bin/syncmld
+bin/mkwbrules
 README
 
+META.yml                                 Module meta-data (added by MakeMaker)
