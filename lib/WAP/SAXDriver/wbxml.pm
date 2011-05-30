@@ -11,7 +11,7 @@ use base qw(XML::SAX::Base);
 use IO::File;
 use IO::String;
 
-our $VERSION = '2.05';
+our $VERSION = '2.06';
 
 sub _parse_characterstream {
     my $p       = shift;
@@ -181,8 +181,13 @@ sub _parse {
     $self->get_strtbl();
     $self->{PublicId} = $self->get_str_t($self->{publicid_idx})
             if (exists $self->{publicid_idx});
-    $self->{App} = $self->{Rules}->{App}{$self->{PublicId}}
-            if (exists $self->{Rules}->{App}{$self->{PublicId}});
+    if ($self->{PublicId} eq 'PublicId-Unknown') {
+        my ($val) = values %{$self->{Rules}->{App}};
+        $self->{App} = $val;
+    }
+    else {
+        $self->{App} = $self->{Rules}->{App}{$self->{PublicId}};
+    }
 
     $self->SUPER::start_document( {
             Version         => '1.0',
@@ -245,7 +250,10 @@ sub get_publicid {
     my $self = shift;
     my $publicid = $self->getmb32();
     return undef unless (defined $publicid);
-    if ($publicid) {
+    if ($publicid == 1) {
+        $self->{PublicId} = "PublicId-Unknown";
+    }
+    elsif ($publicid) {
         if (exists $self->{Rules}->{PublicIdentifier}{$publicid}) {
             $self->{PublicId} = $self->{Rules}->{PublicIdentifier}{$publicid};
         }
@@ -386,13 +394,15 @@ sub element {
         }
     }
     unless (exists $self->{root_name}) {
-        my $system_id = $self->{App}->{systemid} || $name . '.dtd';
-        $self->SUPER::start_dtd( {
-                Name            => $name,
-                PublicId        => $self->{PublicId},
-                SystemId        => $system_id
-        } );
-        $self->SUPER::end_dtd( { } );
+        if ($self->{PublicId} ne 'PublicId-Unknown') {
+            my $system_id = $self->{App}->{systemid} || $name . '.dtd';
+            $self->SUPER::start_dtd( {
+                    Name            => $name,
+                    PublicId        => $self->{PublicId},
+                    SystemId        => $system_id
+            } );
+            $self->SUPER::end_dtd( { } );
+        }
         $self->{root_name} = $name;
     }
     my %saxattr;

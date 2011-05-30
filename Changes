@@ -1,5 +1,9 @@
 Revision history for Perl extension WAP::SAXDriver::wbxml.
 
+2.06  Mon May 30 15:30:00 2011
+	- wbxml.pm : handle unknown PublicId
+	- Makefile.PL : all wbrules2.pl are now generated from WAP::wbxml
+
 2.05  Fri Oct 26 08:30:00 2007
 	- some Perl Best Practices
 

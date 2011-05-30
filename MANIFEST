@@ -1,14 +1,11 @@
 Changes
+LICENSE
 MANIFEST
 Makefile.PL
 test.pl
 lib/WAP/SAXDriver/wbxml.pm
-lib/WAP/SAXDriver/wbxml/wap.wbrules2.pl
-lib/WAP/SAXDriver/wbxml/syncml.wbrules2.pl
-lib/WAP/SAXDriver/wbxml/wv.wbrules2.pl
 bin/wbxmld
 bin/syncmld
 bin/mkwbrules
 README
-
 META.yml                                 Module meta-data (added by MakeMaker)
