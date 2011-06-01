@@ -11,7 +11,7 @@ use base qw(XML::SAX::Base);
 use IO::File;
 use IO::String;
 
-our $VERSION = '2.06';
+our $VERSION = '2.07';
 
 sub _parse_characterstream {
     my $p       = shift;

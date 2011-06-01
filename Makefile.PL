@@ -27,25 +27,29 @@ WriteMakefile(
 sub MY::top_targets {
     package MY;
     my $script = shift->SUPER::top_targets(@_);
-    $script =~ s/pure_all :: (.*)$/pure_all :: $1 wap_rules/m;
-    $script .= <<"WAP";
+    eval 'use WAP::wbxml;';
+    my $path = $INC{'WAP/wbxml.pm'};
+    if ($path) {
+        $path =~ s/\.pm$//i;
+        $script =~ s/pure_all :: (.*)$/pure_all :: $1 wap_rules/m;
+        $script .= <<"WAP";
 
 wap_rules :
 \t\$(MKPATH) ./lib/WAP/SAXDriver/wbxml
-\t\$(PERL) ./bin/mkwbrules -p \$(DESTINSTALLSITELIB)/WAP/wbxml/wap.wbrules.xml
+\t\$(FULLPERLRUN) ./bin/mkwbrules -p $path/wap.wbrules.xml
 \t\$(CP) ./wbrules2.pl ./lib/WAP/SAXDriver/wbxml/wap.wbrules2.pl
 \t\$(RM_F) ./wbrules2.pl
-\t\$(PERL) ./bin/mkwbrules -p \$(DESTINSTALLSITELIB)/WAP/wbxml/wv.wbrules.xml
+\t\$(FULLPERLRUN) ./bin/mkwbrules -p $path/wv.wbrules.xml
 \t\$(CP) ./wbrules2.pl ./lib/WAP/SAXDriver/wbxml/wv.wbrules2.pl
 \t\$(RM_F) ./wbrules2.pl
-\t\$(PERL) ./bin/mkwbrules -p \$(DESTINSTALLSITELIB)/WAP/wbxml/syncml.wbrules.xml
+\t\$(FULLPERLRUN) ./bin/mkwbrules -p $path/syncml.wbrules.xml
 \t\$(CP) ./wbrules2.pl ./lib/WAP/SAXDriver/wbxml/syncml.wbrules2.pl
 \t\$(RM_F) ./wbrules2.pl
-\t\$(PERL) ./bin/mkwbrules -p \$(DESTINSTALLSITELIB)/WAP/wbxml/activesync.wbrules.xml
+\t\$(FULLPERLRUN) ./bin/mkwbrules -p $path/activesync.wbrules.xml
 \t\$(CP) ./wbrules2.pl ./lib/WAP/SAXDriver/wbxml/activesync.wbrules2.pl
 \t\$(RM_F) ./wbrules2.pl
 
 WAP
-
+    }
     return $script;
 }

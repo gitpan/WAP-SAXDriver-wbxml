@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               WAP-SAXDriver-wbxml
-version:            2.06
+version:            2.07
 abstract:           SAX2 parser for WBXML file used by Wireless Application Protocol
 author:
     - Francois PERRAD (francois.perrad@gadz.org)
